@@ -1,1 +1,6 @@
 overpass>=0.7
+matplotlib
+geos
+proj
+cartopy
+numpy
