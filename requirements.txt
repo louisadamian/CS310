@@ -1,1 +1,4 @@
 overpass>=0.7
+matplotlib~=3.10.1
+Cartopy~=0.24.1
+numpy~=2.2.4
