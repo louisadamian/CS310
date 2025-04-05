@@ -1,7 +1,6 @@
 import os.path
 import json
 import time
-
 import overpy
 import numpy as np
 import networkx as nx
@@ -22,24 +21,25 @@ UMB_REGION = [
 api = overpy.Overpass()
 
 
-
 def __gcdist(lat0: np.single, lon0: np.single, lat1: np.single, lon1: np.single) -> np.single:
     """
-    Calculate the great circle distance between two points in meters using a spherical model of the earth (good for distances less than 475km)
+    Calculate the great circle distance in km between two points in meters using a haversine formula.
     :param lat0:
     :param lon0:
     :param lat1:
     :param lon1:
     :return:
     """
-    delta_lat = np.radians(lat1 - lat0)
-    delta_lon = np.radians(lon1 - lon0)
+    # radius of earth from WGS84 https://en.wikipedia.org/wiki/World_Geodetic_System
+    # equation from https://en.wikipedia.org/wiki/Haversine_formula#Formulation
+    delta_lat = np.radians(lat1) - np.radians(lat0)
+    delta_lon = np.radians(lon1) - np.radians(lon0)
     a = (
-        np.sin(delta_lat / 2) ** 2
-        + np.cos(np.radians(lat0)) * np.cos(np.radians(lat1)) * np.sin(delta_lon / 2) ** 2
+        1
+        - np.cos(delta_lat)
+        + np.cos(np.radians(lat0)) * np.cos(np.radians(lat1)) * (1 - np.cos(delta_lon))
     )
-    c = 2 * np.arcsin(np.sqrt(a))
-    return c * np.single(6371000)
+    return 6378137 * 2 * np.arcsin(np.sqrt(a / 2))
 
 
 def __weight(way: overpy.Way, node1: int = None, node2: int = None):
