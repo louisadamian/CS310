@@ -5,6 +5,41 @@ import cartopy.io.img_tiles as cimgt
 import numpy as np
 
 
+def plot_astar_path(path_coords: list[tuple[float, float]]):
+    """
+    erika:
+    temp helper function to plot astar
+    accepts a list of lat,lon tuples
+    """
+    path_arr = np.array(path_coords)
+    request = cimgt.OSM()
+    fig = plt.figure(figsize=(10, 10))
+    ax = plt.axes(projection=request.crs)
+
+    extent = [
+        path_arr[:, 1].min() - 0.002,
+        path_arr[:, 1].max() + 0.002,
+        path_arr[:, 0].min() - 0.002,
+        path_arr[:, 0].max() + 0.002,
+    ]
+    ax.set_extent(extent)
+    ax.add_image(request, 18)  # 18 = zoom level
+    ax.plot(path_arr[:, 1], path_arr[:, 0], transform=ccrs.PlateCarree(), linewidth=2.0, color="blue")
+    ax.text(
+        0.5,
+        0.025,
+        "© OpenStreetMap contributors",
+        size=8,
+        ha="center",
+        transform=ax.transAxes,
+    )
+
+    fig.tight_layout()
+    plt.savefig("astar_path.png", dpi=300)
+    plt.show()
+
+
+
 def plot_route(ways: [np.ndarray], directions: str, crop_to_route=True):
     request = cimgt.OSM()
     fig = plt.figure(figsize=(10, 10))
