@@ -20,8 +20,8 @@ UMB_REGION = [
 ]
 api = overpy.Overpass()
 
-
-def __gcdist(lat0: np.single, lon0: np.single, lat1: np.single, lon1: np.single) -> np.single:
+#modified by erika to make __gcdist to public
+def gcdist(lat0: np.single, lon0: np.single, lat1: np.single, lon1: np.single) -> np.single:
     """
     Calculate the great circle distance in km between two points in meters using a haversine formula.
     :param lat0:
@@ -41,8 +41,8 @@ def __gcdist(lat0: np.single, lon0: np.single, lat1: np.single, lon1: np.single)
     )
     return 6378137 * 2 * np.arcsin(np.sqrt(a / 2))
 
-
-def __weight(way: overpy.Way, node1: int = None, node2: int = None):
+# modified by to make __weight public
+def weight(way: overpy.Way, node1: int = None, node2: int = None):
     if node1 is not None and node2 is not None:
         i1 = way.nodes.index(node1)
         i2 = way.nodes.index(node2)
@@ -53,7 +53,7 @@ def __weight(way: overpy.Way, node1: int = None, node2: int = None):
         n2 = len(way.nodes)
     weight = 0
     for i in range(n1, n2 - 1):
-        weight += __gcdist(
+        weight += gcdist(
             float(way.nodes[i].lat),
             float(way.nodes[i].lon),
             float(way.nodes[i + 1].lat),
@@ -149,7 +149,8 @@ def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> 
         else:
             nodes = np.intersect1d(graph_nodes, way._node_ids)
         for i in range(len(nodes) - 1):
-            graph.add_edge(nodes[i], nodes[i + 1], weight=__weight(way))
+            #weight=__weight(way
+            graph.add_edge(nodes[i], nodes[i + 1], weight=weight(way))
     if remove_component_size > 0:
         components_set = list(nx.connected_components(graph))
         for components in components_set:
@@ -157,6 +158,29 @@ def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> 
                 graph.remove_nodes_from(components)
     return graph
 
+UMB_LANDMARKS = {
+    "campus center": (42.312688, -71.036640),
+    "healy library": (42.313421, -71.039625),
+    "wheatly hall": (42.312116, -71.038258),
+    "mccormack hall": (42.312743, -71.039448),
+    "integrated sciences complex": (42.313794, -71.040958),
+    "university hall": (42.313184, -71.035274),
+    "beacon fitness center":(42.312743, -71.039448),
+    "residence hall east": (42.316210, -71.038650),
+    "residence hall west": (42.316345, -71.039641),
+    "clark athletic center": (42.314877, -71.039325),
+    "quinn admin": (42.314255, -71.039772), 
+    "quad": (42.313870, -71.038546),
+}
+
+UMB_TRANSPO ={
+    "bayside lot": (42.320589, -71.046610),
+    "jfk / umass": (42.320614, -71.052382),
+    "west garage": (42.315300, -71.041588),
+    "quad lot": (42.313948, -71.036797),
+    "campus center garage": (42.313079, -71.036145),
+    "lot D":(42.317099, -71.038048),
+}
 
 from matplotlib import pyplot as plt
 
