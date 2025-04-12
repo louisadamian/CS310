@@ -1,6 +1,7 @@
 import os.path
 import json
 import time
+import warnings
 import overpy
 import numpy as np
 import networkx as nx
@@ -21,7 +22,7 @@ UMB_REGION = [
 api = overpy.Overpass()
 
 
-def __gcdist(lat0: np.single, lon0: np.single, lat1: np.single, lon1: np.single) -> np.single:
+def __gcdist(lat0: np.double, lon0: np.double, lat1: np.double, lon1: np.double) -> np.single:
     """
     Calculate the great circle distance in km between two points in meters using a haversine formula.
     :param lat0:
@@ -32,34 +33,55 @@ def __gcdist(lat0: np.single, lon0: np.single, lat1: np.single, lon1: np.single)
     """
     # radius of earth from WGS84 https://en.wikipedia.org/wiki/World_Geodetic_System
     # equation from https://en.wikipedia.org/wiki/Haversine_formula#Formulation
-    delta_lat = np.radians(lat1) - np.radians(lat0)
-    delta_lon = np.radians(lon1) - np.radians(lon0)
+    delta_lat = np.radians(lat1 - lat0)
+    delta_lon = np.radians(lon1 - lon0)
     a = (
         1
         - np.cos(delta_lat)
         + np.cos(np.radians(lat0)) * np.cos(np.radians(lat1)) * (1 - np.cos(delta_lon))
-    )
-    return 6378137 * 2 * np.arcsin(np.sqrt(a / 2))
+    ) / 2
+    return 6378137 * 2 * np.arcsin(np.sqrt(a))
 
 
 def __weight(way: overpy.Way, node1: int = None, node2: int = None):
+    n1 = 0
+    n2 = 0
     if node1 is not None and node2 is not None:
-        i1 = way.nodes.index(node1)
-        i2 = way.nodes.index(node2)
-        if i1 > i2:
-            i1, i2 = i2, i1
+        for i, node in enumerate(way.nodes):
+            if node.id == node1:
+                n1 = i
+            if node.id == node2:
+                n2 = i
+            if n1 != 0 and n2 != 0:
+                break
+        if n1 > n2:
+            (n1, n2) = (n2, n1)
     else:
         n1 = 0
         n2 = len(way.nodes)
     weight = 0
-    for i in range(n1, n2 - 1):
+    points = []
+    if (n2 - n1) < 2:
+        points.append([way.nodes[n1].lat, way.nodes[n1].lon])
         weight += __gcdist(
-            float(way.nodes[i].lat),
-            float(way.nodes[i].lon),
-            float(way.nodes[i + 1].lat),
-            float(way.nodes[i + 1].lon),
+            np.double(way.nodes[n1].lat),
+            np.double(way.nodes[n1].lon),
+            np.double(way.nodes[n2].lat),
+            np.double(way.nodes[n2].lon),
         )
-    return weight
+    for i in range(n1, n2 - 1):
+        points.append([way.nodes[i].lat, way.nodes[i].lon])
+        weight += __gcdist(
+            np.double(way.nodes[i].lat),
+            np.double(way.nodes[i].lon),
+            np.double(way.nodes[i + 1].lat),
+            np.double(way.nodes[i + 1].lon),
+        )
+    points.append([way.nodes[n2].lat, way.nodes[n2].lon])
+    points = np.array(points, dtype=np.single)
+    if weight == 0:
+        warnings.warn(f"edge ({node1}, {node2}) has 0 weight")
+    return weight, points
 
 
 def __coords_list_to_str(coords_list: [(float, float)]) -> str:
@@ -112,7 +134,7 @@ def get_ways(filepath="umb_way_data.pkl", force_download=False) -> overpy.Result
     """
     if (
         os.path.isfile(filepath) and time.time() - os.path.getctime(filepath) > 24 * 60 * 60
-    ) or force_download:
+    ) and not force_download:
         with open(filepath, "rb") as f:
             return pickle.load(f)
     ways = api.query(
@@ -137,7 +159,11 @@ def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> 
     for way in osm_data.ways:
         for node in way.nodes:
             if "entrance" in node.tags.keys():
-                if node.tags["entrance"] == "yes":
+                if (
+                    node.tags["entrance"] != "no"
+                    and node.tags["entrance"] != "exit"
+                    and node.tags["entrance"] != "emergency"
+                ):
                     nodes_count[np.where(nodes_count == node.id)[0][0], 1] += 2
             nodes_count[np.where(nodes_count == node.id)[0][0], 1] += 1
     graph_nodes = nodes_count[nodes_count[:, 1] > 1][:, 0]
@@ -149,7 +175,8 @@ def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> 
         else:
             nodes = np.intersect1d(graph_nodes, way._node_ids)
         for i in range(len(nodes) - 1):
-            graph.add_edge(nodes[i], nodes[i + 1], weight=__weight(way))
+            weight, points = __weight(way, nodes[i], nodes[i + 1])
+            graph.add_edge(nodes[i], nodes[i + 1], weight=weight, points=points)
     if remove_component_size > 0:
         components_set = list(nx.connected_components(graph))
         for components in components_set:
@@ -158,11 +185,28 @@ def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> 
     return graph
 
 
-from matplotlib import pyplot as plt
+def get_graph(filepath="umb_graph.pkl", force_download=False, remove_component_size=10) -> nx.Graph:
+    """
+    gets data from OpenStreetMaps and converts it into a networkx graph
+    :param filepath:
+    :param force_download:
+    :param remove_component_size:
+    :return:
+    """
+    if not force_download and os.path.isfile(filepath):
+        with open(filepath, "rb") as f:
+            return pickle.load(f)
+    data = get_ways(force_download=force_download)
+    graph = convert_ways_to_graph(data, remove_component_size=remove_component_size)
+    with open(filepath, "wb") as f:
+        pickle.dump(graph, f)
+    return graph
+
 
 if __name__ == "__main__":
-    ways = get_ways()
-    graph = convert_ways_to_graph(ways)
+    from matplotlib import pyplot as plt
+
+    graph = get_graph()
     print(f"created graph with {len(graph.nodes)} nodes and {len(graph.edges)} edges")
     nx.draw(graph, with_labels=True)
     plt.show()
