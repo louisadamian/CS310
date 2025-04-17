@@ -67,15 +67,8 @@ def plot_route(path: [], graph, crop_to_route=True, show=True):
 
 
 if __name__ == "__main__":
-    with open("ways.pkl", "rb") as f:
-        ways = pickle.load(f)
-    way0 = ways[287].points
-    way1 = [x for x in ways if x.id == 1367084178][0].points
-    way2 = [x for x in ways if x.id == 1368829688][0].points
-    plot_points(
-        [way0, way1, way2],
-        "exit Campus Center\nturn right\nturn left on the quad path",
-        True,
-    )
+    with open("umb_graph.pkl", "rb") as f:
+        graph = pickle.load(f)
+    plot_route([ 7672450750, 12660053764, 12660053770, 12660053773],graph, show=False)
     plt.savefig("demo.png", dpi=300)
     plt.show()
