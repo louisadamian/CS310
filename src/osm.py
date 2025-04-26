@@ -160,7 +160,8 @@ def convert_ways_to_graph(
         if "area" in way.tags.keys() and way.tags["area"] == "yes":
             nodes = np.array(way._node_ids, dtype=np.int64)
         else:
-            nodes = np.intersect1d(graph_nodes, way._node_ids)
+            _,_,node_indices = np.intersect1d(graph_nodes, way._node_ids, return_indices=True)
+            nodes = np.take(np.array(way._node_ids), np.sort(node_indices))
         for i in range(len(nodes) - 1):
             weight, points = __weight(way, nodes[i], nodes[i + 1])
             graph.add_edge(nodes[i], nodes[i + 1], weight=weight, points=points)
