@@ -1,5 +1,4 @@
 import os.path
-import json
 import time
 import warnings
 import overpy
@@ -19,10 +18,11 @@ UMB_REGION = [
     (42.3212511, -71.0521287),
     (42.3196561, -71.0520413),
 ]
-api = overpy.Overpass()
 
 
-def __gcdist(lat0: np.double, lon0: np.double, lat1: np.double, lon1: np.double) -> np.single:
+def __gcdist(
+    lat0: np.double, lon0: np.double, lat1: np.double, lon1: np.double
+) -> np.single:
     """
     Calculate the great circle distance in km between two points in meters using a haversine formula.
     :param lat0:
@@ -43,7 +43,16 @@ def __gcdist(lat0: np.double, lon0: np.double, lat1: np.double, lon1: np.double)
     return 6378137 * 2 * np.arcsin(np.sqrt(a))
 
 
-def __weight(way: overpy.Way, node1: int = None, node2: int = None):
+def __weight(
+    way: overpy.Way, node1: int = None, node2: int = None
+) -> (float, np.ndarray):
+    """
+    Calculate the weight of a way using the haversine distance between the points on the path and adds returns the weight and points
+    :param way: overpy.Way to for weight to be computed on
+    :param node1: starting node in the way
+    :param node2: ending node in the way
+    :return: (weight ,points) the weight of a way and a list of points in the way
+    """
     n1 = 0
     n2 = 0
     if node1 is not None and node2 is not None:
@@ -93,50 +102,20 @@ def __coords_list_to_str(coords_list: [(float, float)]) -> str:
     return coord_str
 
 
-def get_points(filepath="umb_point_data.geojson") -> dict:
-    """
-    gets all the points on UMB campus from OSM
-    :param filepath: geojson file path to read from or write to
-    :return: dictionary of geoJSON data of points
-    """
-    if os.path.isfile(filepath):
-        with open(filepath, "r") as f:
-            return json.loads(f.read())
-    query = 'node["entrance"](poly: "' + __coords_list_to_str(UMB_REGION) + '");'
-    json_data = api.get(query)
-    with open(filepath, "w") as f:
-        f.write(json.dumps(json_data))
-    return json_data
-
-
-def get_buildings(filepath="umb_building_data.geojson") -> dict:
-    """
-    gets the polygon outlines of buildings from OSM
-    :param filepath: geojson file path to read from or write to
-    :return: dict of geojson building polygons
-    """
-    if os.path.isfile(filepath):
-        with open(filepath, "r") as f:
-            return json.loads(f.read())
-    query = 'way["building"](poly: "' + __coords_list_to_str(UMB_REGION) + '");(._;>;);out;'
-    json_data = api.get(query)
-    with open(filepath, "w") as f:
-        f.write(json.dumps(json_data))
-    return json_data
-
-
 def get_ways(filepath="umb_way_data.pkl", force_download=False) -> overpy.Result:
     """
-    gets openstreetmap ways from Overpass API or local cache
+    gets OpenStreetMap ways from Overpass API or local cache
     :param filepath: path to pickle file with openstreetmap data
     :param force_download: force download new data from OpenStreetMaps
     :return: overpy.Result with pedestrian ways and points
     """
     if (
-        os.path.isfile(filepath) and time.time() - os.path.getctime(filepath) > 24 * 60 * 60
+        os.path.isfile(filepath)
+        and time.time() - os.path.getctime(filepath) > 24 * 60 * 60
     ) and not force_download:
         with open(filepath, "rb") as f:
             return pickle.load(f)
+    api = overpy.Overpass()
     ways = api.query(
         'way["highway"~"pedestrian|footway|steps|sidewalk|cycleway|path|corridor"](poly: "'
         + __coords_list_to_str(UMB_REGION)
@@ -147,10 +126,12 @@ def get_ways(filepath="umb_way_data.pkl", force_download=False) -> overpy.Result
     return ways
 
 
-def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> nx.Graph:
+def convert_ways_to_graph(
+    osm_data: overpy.Result, remove_component_size=10
+) -> nx.Graph:
     """
     creates a networkx graph of ways from OpenStreetMap where the weight is the GC distance between the points along the points of the way
-    :param osm_data: OpenStreetMaps data from overpy
+    :param osm_data: OpenStreetMap data from overpy
     :param remove_component_size: minimum number of nodes for a connected component to not be removed
     :return:
     """
@@ -185,13 +166,15 @@ def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> 
     return graph
 
 
-def get_graph(filepath="umb_graph.pkl", force_download=False, remove_component_size=10) -> nx.Graph:
+def get_graph(
+    filepath="umb_graph.pkl", force_download=False, remove_component_size=10
+) -> nx.Graph:
     """
     gets data from OpenStreetMaps and converts it into a networkx graph
-    :param filepath:
-    :param force_download:
-    :param remove_component_size:
-    :return:
+    :param filepath: the path to the pickle file containing the networkx graph
+    :param force_download: force download new data from OpenStreetMap
+    :param remove_component_size: remove connected components with size less than this number of nodes
+    :return: a networkx graph of points from OpenStreetMap
     """
     if not force_download and os.path.isfile(filepath):
         with open(filepath, "rb") as f:
