@@ -94,6 +94,11 @@ def __weight(
 
 
 def __coords_list_to_str(coords_list: [(float, float)]) -> str:
+    """
+    convert a list of (lat, lon) coordinates to a string representation separated by whitespace for the overpass API query
+    :param coords_list: list of (lat, lon) coordinate tuples
+    :return: string of lat lon coordinates
+    """
     coord_str = ""
     for coord in coords_list:
         if coord_str != "":
@@ -109,6 +114,7 @@ def get_ways(filepath="umb_way_data.pkl", force_download=False) -> overpy.Result
     :param force_download: force download new data from OpenStreetMaps
     :return: overpy.Result with pedestrian ways and points
     """
+    # check if we already have OpenStreetMap data downloaded if it is less than 24 hours old we import it
     if (
         os.path.isfile(filepath)
         and time.time() - os.path.getctime(filepath) > 24 * 60 * 60
