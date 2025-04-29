@@ -1,6 +1,6 @@
 import os.path
-import json
 import time
+import warnings
 import overpy
 import numpy as np
 import networkx as nx
@@ -18,10 +18,13 @@ UMB_REGION = [
     (42.3212511, -71.0521287),
     (42.3196561, -71.0520413),
 ]
-api = overpy.Overpass()
 
-#modified by erika to make __gcdist to public
-def gcdist(lat0: np.single, lon0: np.single, lat1: np.single, lon1: np.single) -> np.single:
+
+
+def __gcdist(
+    lat0: np.double, lon0: np.double, lat1: np.double, lon1: np.double
+) -> np.single:
+
     """
     Calculate the great circle distance in km between two points in meters using a haversine formula.
     :param lat0:
@@ -32,37 +35,74 @@ def gcdist(lat0: np.single, lon0: np.single, lat1: np.single, lon1: np.single) -
     """
     # radius of earth from WGS84 https://en.wikipedia.org/wiki/World_Geodetic_System
     # equation from https://en.wikipedia.org/wiki/Haversine_formula#Formulation
-    delta_lat = np.radians(lat1) - np.radians(lat0)
-    delta_lon = np.radians(lon1) - np.radians(lon0)
+    delta_lat = np.radians(lat1 - lat0)
+    delta_lon = np.radians(lon1 - lon0)
     a = (
         1
         - np.cos(delta_lat)
         + np.cos(np.radians(lat0)) * np.cos(np.radians(lat1)) * (1 - np.cos(delta_lon))
-    )
-    return 6378137 * 2 * np.arcsin(np.sqrt(a / 2))
+    ) / 2
+    return 6378137 * 2 * np.arcsin(np.sqrt(a))
 
-# modified by to make __weight public
-def weight(way: overpy.Way, node1: int = None, node2: int = None):
+
+
+def __weight(
+    way: overpy.Way, node1: int = None, node2: int = None
+) -> (float, np.ndarray):
+    """
+    Calculate the weight of a way using the haversine distance between the points on the path and adds returns the weight and points
+    :param way: overpy.Way to for weight to be computed on
+    :param node1: starting node in the way
+    :param node2: ending node in the way
+    :return: (weight ,points) the weight of a way and a list of points in the way
+    """
+    n1 = 0
+    n2 = 0
+
     if node1 is not None and node2 is not None:
-        i1 = way.nodes.index(node1)
-        i2 = way.nodes.index(node2)
-        if i1 > i2:
-            i1, i2 = i2, i1
+        for i, node in enumerate(way.nodes):
+            if node.id == node1:
+                n1 = i
+            if node.id == node2:
+                n2 = i
+            if n1 != 0 and n2 != 0:
+                break
+        if n1 > n2:
+            (n1, n2) = (n2, n1)
     else:
         n1 = 0
         n2 = len(way.nodes)
     weight = 0
-    for i in range(n1, n2 - 1):
-        weight += gcdist(
-            float(way.nodes[i].lat),
-            float(way.nodes[i].lon),
-            float(way.nodes[i + 1].lat),
-            float(way.nodes[i + 1].lon),
+    points = []
+    if (n2 - n1) < 2:
+        points.append([way.nodes[n1].lat, way.nodes[n1].lon])
+        weight += __gcdist(
+            np.double(way.nodes[n1].lat),
+            np.double(way.nodes[n1].lon),
+            np.double(way.nodes[n2].lat),
+            np.double(way.nodes[n2].lon),
         )
-    return weight
+    for i in range(n1, n2 - 1):
+        points.append([way.nodes[i].lat, way.nodes[i].lon])
+        weight += __gcdist(
+            np.double(way.nodes[i].lat),
+            np.double(way.nodes[i].lon),
+            np.double(way.nodes[i + 1].lat),
+            np.double(way.nodes[i + 1].lon),
+        )
+    points.append([way.nodes[n2].lat, way.nodes[n2].lon])
+    points = np.array(points, dtype=np.single)
+    if weight == 0:
+        warnings.warn(f"edge ({node1}, {node2}) has 0 weight")
+    return weight, points
 
 
 def __coords_list_to_str(coords_list: [(float, float)]) -> str:
+    """
+    convert a list of (lat, lon) coordinates to a string representation separated by whitespace for the overpass API query
+    :param coords_list: list of (lat, lon) coordinate tuples
+    :return: string of lat lon coordinates
+    """
     coord_str = ""
     for coord in coords_list:
         if coord_str != "":
@@ -71,50 +111,21 @@ def __coords_list_to_str(coords_list: [(float, float)]) -> str:
     return coord_str
 
 
-def get_points(filepath="umb_point_data.geojson") -> dict:
-    """
-    gets all the points on UMB campus from OSM
-    :param filepath: geojson file path to read from or write to
-    :return: dictionary of geoJSON data of points
-    """
-    if os.path.isfile(filepath):
-        with open(filepath, "r") as f:
-            return json.loads(f.read())
-    query = 'node["entrance"](poly: "' + __coords_list_to_str(UMB_REGION) + '");'
-    json_data = api.get(query)
-    with open(filepath, "w") as f:
-        f.write(json.dumps(json_data))
-    return json_data
-
-
-def get_buildings(filepath="umb_building_data.geojson") -> dict:
-    """
-    gets the polygon outlines of buildings from OSM
-    :param filepath: geojson file path to read from or write to
-    :return: dict of geojson building polygons
-    """
-    if os.path.isfile(filepath):
-        with open(filepath, "r") as f:
-            return json.loads(f.read())
-    query = 'way["building"](poly: "' + __coords_list_to_str(UMB_REGION) + '");(._;>;);out;'
-    json_data = api.get(query)
-    with open(filepath, "w") as f:
-        f.write(json.dumps(json_data))
-    return json_data
-
-
 def get_ways(filepath="umb_way_data.pkl", force_download=False) -> overpy.Result:
     """
-    gets openstreetmap ways from Overpass API or local cache
+    gets OpenStreetMap ways from Overpass API or local cache
     :param filepath: path to pickle file with openstreetmap data
     :param force_download: force download new data from OpenStreetMaps
     :return: overpy.Result with pedestrian ways and points
     """
+    # check if we already have OpenStreetMap data downloaded if it is less than 24 hours old we import it
     if (
-        os.path.isfile(filepath) and time.time() - os.path.getctime(filepath) > 24 * 60 * 60
-    ) or force_download:
+        os.path.isfile(filepath)
+        and time.time() - os.path.getctime(filepath) > 24 * 60 * 60
+    ) and not force_download:
         with open(filepath, "rb") as f:
             return pickle.load(f)
+    api = overpy.Overpass()
     ways = api.query(
         'way["highway"~"pedestrian|footway|steps|sidewalk|cycleway|path|corridor"](poly: "'
         + __coords_list_to_str(UMB_REGION)
@@ -125,10 +136,12 @@ def get_ways(filepath="umb_way_data.pkl", force_download=False) -> overpy.Result
     return ways
 
 
-def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> nx.Graph:
+def convert_ways_to_graph(
+    osm_data: overpy.Result, remove_component_size=10
+) -> nx.Graph:
     """
     creates a networkx graph of ways from OpenStreetMap where the weight is the GC distance between the points along the points of the way
-    :param osm_data: OpenStreetMaps data from overpy
+    :param osm_data: OpenStreetMap data from overpy
     :param remove_component_size: minimum number of nodes for a connected component to not be removed
     :return:
     """
@@ -137,7 +150,11 @@ def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> 
     for way in osm_data.ways:
         for node in way.nodes:
             if "entrance" in node.tags.keys():
-                if node.tags["entrance"] == "yes":
+                if (
+                    node.tags["entrance"] != "no"
+                    and node.tags["entrance"] != "exit"
+                    and node.tags["entrance"] != "emergency"
+                ):
                     nodes_count[np.where(nodes_count == node.id)[0][0], 1] += 2
             nodes_count[np.where(nodes_count == node.id)[0][0], 1] += 1
     graph_nodes = nodes_count[nodes_count[:, 1] > 1][:, 0]
@@ -149,8 +166,8 @@ def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> 
         else:
             nodes = np.intersect1d(graph_nodes, way._node_ids)
         for i in range(len(nodes) - 1):
-            #weight=__weight(way
-            graph.add_edge(nodes[i], nodes[i + 1], weight=weight(way))
+            weight, points = __weight(way, nodes[i], nodes[i + 1])
+            graph.add_edge(nodes[i], nodes[i + 1], weight=weight, points=points)
     if remove_component_size > 0:
         components_set = list(nx.connected_components(graph))
         for components in components_set:
@@ -182,11 +199,30 @@ UMB_TRANSPO ={
     "lot D":(42.317099, -71.038048),
 }
 
-from matplotlib import pyplot as plt
+def get_graph(
+    filepath="umb_graph.pkl", force_download=False, remove_component_size=10
+) -> nx.Graph:
+    """
+    gets data from OpenStreetMaps and converts it into a networkx graph
+    :param filepath: the path to the pickle file containing the networkx graph
+    :param force_download: force download new data from OpenStreetMap
+    :param remove_component_size: remove connected components with size less than this number of nodes
+    :return: a networkx graph of points from OpenStreetMap
+    """
+    if not force_download and os.path.isfile(filepath):
+        with open(filepath, "rb") as f:
+            return pickle.load(f)
+    data = get_ways(force_download=force_download)
+    graph = convert_ways_to_graph(data, remove_component_size=remove_component_size)
+    with open(filepath, "wb") as f:
+        pickle.dump(graph, f)
+    return graph
+
 
 if __name__ == "__main__":
-    ways = get_ways()
-    graph = convert_ways_to_graph(ways)
+    from matplotlib import pyplot as plt
+
+    graph = get_graph()
     print(f"created graph with {len(graph.nodes)} nodes and {len(graph.edges)} edges")
     nx.draw(graph, with_labels=True)
     plt.show()
