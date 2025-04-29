@@ -20,9 +20,11 @@ UMB_REGION = [
 ]
 
 
+
 def __gcdist(
     lat0: np.double, lon0: np.double, lat1: np.double, lon1: np.double
 ) -> np.single:
+
     """
     Calculate the great circle distance in km between two points in meters using a haversine formula.
     :param lat0:
@@ -43,6 +45,7 @@ def __gcdist(
     return 6378137 * 2 * np.arcsin(np.sqrt(a))
 
 
+
 def __weight(
     way: overpy.Way, node1: int = None, node2: int = None
 ) -> (float, np.ndarray):
@@ -55,6 +58,7 @@ def __weight(
     """
     n1 = 0
     n2 = 0
+
     if node1 is not None and node2 is not None:
         for i, node in enumerate(way.nodes):
             if node.id == node1:
@@ -171,6 +175,29 @@ def convert_ways_to_graph(
                 graph.remove_nodes_from(components)
     return graph
 
+UMB_LANDMARKS = {
+    "campus center": (42.312688, -71.036640),
+    "healy library": (42.313421, -71.039625),
+    "wheatly hall": (42.312116, -71.038258),
+    "mccormack hall": (42.312743, -71.039448),
+    "integrated sciences complex": (42.313794, -71.040958),
+    "university hall": (42.313184, -71.035274),
+    "beacon fitness center":(42.312743, -71.039448),
+    "residence hall east": (42.316210, -71.038650),
+    "residence hall west": (42.316345, -71.039641),
+    "clark athletic center": (42.314877, -71.039325),
+    "quinn admin": (42.314255, -71.039772), 
+    "quad": (42.313870, -71.038546),
+}
+
+UMB_TRANSPO ={
+    "bayside lot": (42.320589, -71.046610),
+    "jfk / umass": (42.320614, -71.052382),
+    "west garage": (42.315300, -71.041588),
+    "quad lot": (42.313948, -71.036797),
+    "campus center garage": (42.313079, -71.036145),
+    "lot D":(42.317099, -71.038048),
+}
 
 def get_graph(
     filepath="umb_graph.pkl", force_download=False, remove_component_size=10
