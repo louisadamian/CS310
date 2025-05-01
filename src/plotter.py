@@ -53,11 +53,12 @@ def plot_points(ways: [np.ndarray], directions: str, crop_to_route=True) -> None
             color="red",
         )
     ax.text(
-        0.5,
+        1,
         0.0,
-        "© OpenStreetMap contributors",
+        "© OpenStreetMap contributors  ",
         size=8,
-        ha="center",
+        ha="right",
+        va="bottom",
         transform=ax.transAxes,
         backgroundcolor="white",
     )
