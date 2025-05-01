@@ -12,9 +12,9 @@ def __zoom_level(extent: np.ndarray) -> int:
     :return: the zoom level number
     """
     m = np.max([np.abs(extent[1] - extent[0]), np.abs(extent[3] - extent[2])])
-    if m > 0.0055:  # if :
+    if m < 0.0055:
         return 18
-    elif m > 0.007749:
+    elif m < 0.007749:
         return 17
     else:
         return 16
@@ -74,6 +74,7 @@ def plot_route(path: [], graph, crop_to_route=True, show=True, save_file=None) -
     :param graph: the networkx graph
     :param crop_to_route: crops the map to only show the route if false it shows the entire UMass Boston campus
     :param show: the plot window
+    :param save_file: save the figure to a file with the name given by save_file
     :return:
     """
     points = []

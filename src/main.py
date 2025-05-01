@@ -28,4 +28,4 @@ if __name__ == "__main__":
                 shortest_length = len
                 nodes = (start_node, end_node)
     path = nx.shortest_path(graph, start, end)
-    plotter.plot_route(path, graph, crop_to_route=True, show=True, save_file="route.jpg")
+    plotter.plot_route(path, graph, crop_to_route=True, show=True)
