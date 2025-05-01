@@ -7,7 +7,7 @@ import networkx as nx
 import pickle
 
 UMB_REGION = [
-    (42.3196561, -71.0520413),
+    (42.31984190454275, -71.05251184318851),
     (42.3202193, -71.0510167),
     (42.3175209, -71.0415681),
     (42.3134307, -71.0430135),
@@ -15,14 +15,12 @@ UMB_REGION = [
     (42.3133297, -71.0324853),
     (42.3189148, -71.0332685),
     (42.3235297, -71.0451844),
-    (42.3212511, -71.0521287),
-    (42.3196561, -71.0520413),
+    (42.32119679444875, -71.05265041751876),
+    (42.31984190454275, -71.05251184318851),
 ]
 
 
-def __gcdist(
-    lat0: np.double, lon0: np.double, lat1: np.double, lon1: np.double
-) -> np.single:
+def __gcdist(lat0: np.double, lon0: np.double, lat1: np.double, lon1: np.double) -> np.single:
     """
     Calculate the great circle distance in km between two points in meters using a haversine formula.
     :param lat0:
@@ -43,9 +41,7 @@ def __gcdist(
     return 6378137 * 2 * np.arcsin(np.sqrt(a))
 
 
-def __weight(
-    way: overpy.Way, node1: int = None, node2: int = None
-) -> (float, np.ndarray):
+def __weight(way: overpy.Way, node1: int = None, node2: int = None) -> (float, np.ndarray):
     """
     Calculate the weight of a way using the haversine distance between the points on the path and adds returns the weight and points
     :param way: overpy.Way to for weight to be computed on
@@ -116,8 +112,7 @@ def get_ways(filepath="umb_way_data.pkl", force_download=False) -> overpy.Result
     """
     # check if we already have OpenStreetMap data downloaded if it is less than 24 hours old we import it
     if (
-        os.path.isfile(filepath)
-        and time.time() - os.path.getctime(filepath) > 24 * 60 * 60
+        os.path.isfile(filepath) and time.time() - os.path.getctime(filepath) > 24 * 60 * 60
     ) and not force_download:
         with open(filepath, "rb") as f:
             return pickle.load(f)
@@ -132,9 +127,7 @@ def get_ways(filepath="umb_way_data.pkl", force_download=False) -> overpy.Result
     return ways
 
 
-def convert_ways_to_graph(
-    osm_data: overpy.Result, remove_component_size=10
-) -> nx.Graph:
+def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> nx.Graph:
     """
     creates a networkx graph of ways from OpenStreetMap where the weight is the GC distance between the points along the points of the way
     :param osm_data: OpenStreetMap data from overpy
@@ -160,7 +153,7 @@ def convert_ways_to_graph(
         if "area" in way.tags.keys() and way.tags["area"] == "yes":
             nodes = np.array(way._node_ids, dtype=np.int64)
         else:
-            _,_,node_indices = np.intersect1d(graph_nodes, way._node_ids, return_indices=True)
+            _, _, node_indices = np.intersect1d(graph_nodes, way._node_ids, return_indices=True)
             nodes = np.take(np.array(way._node_ids), np.sort(node_indices))
         for i in range(len(nodes) - 1):
             weight, points = __weight(way, nodes[i], nodes[i + 1])
@@ -173,9 +166,7 @@ def convert_ways_to_graph(
     return graph
 
 
-def get_graph(
-    filepath="umb_graph.pkl", force_download=False, remove_component_size=10
-) -> nx.Graph:
+def get_graph(filepath="umb_graph.pkl", force_download=False, remove_component_size=10) -> nx.Graph:
     """
     gets data from OpenStreetMaps and converts it into a networkx graph
     :param filepath: the path to the pickle file containing the networkx graph
