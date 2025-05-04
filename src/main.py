@@ -2,7 +2,7 @@ import networkx as nx
 import osm
 import plotter
 from algorithms.astar import astar
-from graph import build_osm_graph
+from osm import get_graph
 from location_search import get_location_nodes
 from algorithms.dijkstras import dijkstra
 import time
@@ -19,8 +19,8 @@ if __name__ == "__main__":
     get_start = input("Input starting point: \n")
     get_goal = input("\nInput destination: \n")
 
-    algo_choice = input("\nChoose algorithm ('dijkstra', 'astar', or 'both'): \n")
-    graph = build_osm_graph()
+    algo_choice = input("\nChoose algorithm ('dijkstra', 'astar'): \n")
+    graph = get_graph()
 
     # Query for node from user standard input
     start_node = get_location_nodes(get_start, graph)
@@ -36,21 +36,11 @@ if __name__ == "__main__":
 
     match algo_choice:
         case 'dijkstra':
-            print("\nStarting route using Dijkstra algorithm...\n")
+            print("\nComputing shortest path using Dijkstra's algorithm...\n")
             path = dijkstra(graph, start_id, goal_id)
         case 'astar':
-            print("\nStarting route using A* algorithm...\n")
+            print("\nComputing shortest path using A* algorithm...\n")
             path = astar(graph, start_id, goal_id)
-        case 'both':
-            print("\nStarting route..\nDijkstra...\n")
-            path_d = dijkstra(graph, start_id, goal_id)
-            time.sleep(1)
-            print("\nA*...\n")
-            path_a = astar(graph, start_id, goal_id)
-
-            plotter.plot_route(path_d, graph, crop_to_route=True, show=True)
-            plotter.plot_route(path_a, graph, crop_to_route=True, show=True)
-            exit(0)
         case _:
             raise ValueError("Invalid choice")
 

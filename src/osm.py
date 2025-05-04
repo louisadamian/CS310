@@ -187,6 +187,11 @@ def get_graph(
             return pickle.load(f)
     data = get_ways(force_download=force_download)
     graph = convert_ways_to_graph(data, remove_component_size=remove_component_size)
+
+    for node_id in graph.nodes:
+        node = data.get_node(node_id)
+        graph.nodes[node_id]['coord']=(float(node.lat), float(node.lon))
+
     with open(filepath, "wb") as f:
         pickle.dump(graph, f)
     return graph
