@@ -37,7 +37,7 @@ def get_location_nodes(query: str, graph: nx.Graph):
     if len(ids) > 0:
         api = overpy.Overpass()
         res = api.query(
-            f'({ids[0][0]}({ids[0][1]});)->.poi;way(around.poi: 5)["highway"~"pedestrian|footway|steps|sidewalk|cycleway|path|corridor"];>->.nodes_around;node.nodes_around(around.poi: 5);out;'
+            f'({ids[0][0]}({ids[0][1]});)->.poi;way(around.poi: 10)["highway"~"pedestrian|footway|steps|sidewalk|cycleway|path|corridor"];>->.nodes_around;node.nodes_around(around.poi: 5);out;'
         )
         nodes = []
         for node in res.nodes:
