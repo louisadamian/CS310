@@ -12,9 +12,9 @@ def __zoom_level(extent: np.ndarray) -> int:
     :return: the zoom level number
     """
     m = np.max([np.abs(extent[1] - extent[0]), np.abs(extent[3] - extent[2])])
-    if m > 0.0055:  # if :
+    if m < 0.0055:
         return 18
-    elif m > 0.007749:
+    elif m < 0.007749:
         return 17
     else:
         return 16
@@ -53,35 +53,37 @@ def plot_points(ways: [np.ndarray], directions: str, crop_to_route=True) -> None
             color="red",
         )
     ax.text(
-        0.5,
+        1,
         0.0,
-        "© OpenStreetMap contributors",
+        "© OpenStreetMap contributors  ",
         size=8,
-        ha="center",
+        ha="right",
+        va="bottom",
         transform=ax.transAxes,
         backgroundcolor="white",
     )
-    ax.text(
-        1.01, 0.9, directions, va="top", ha="left", transform=ax.transAxes, wrap=True
-    )
+    ax.text(1.01, 0.9, directions, va="top", ha="left", transform=ax.transAxes, wrap=True)
     ax.margins(x=5)
     plt.margins(x=1)
     fig.tight_layout()
 
 
-def plot_route(path: [], graph, crop_to_route=True, show=True) -> None:
+def plot_route(path: [], graph, crop_to_route=True, show=True, save_file=None) -> None:
     """
     plots a route given by a list of nodes in the graph onto OpenStreetMap
     :param path: the list of nodes in the graph onto which to plot
     :param graph: the networkx graph
     :param crop_to_route: crops the map to only show the route if false it shows the entire UMass Boston campus
     :param show: the plot window
+    :param save_file: save the figure to a file with the name given by save_file
     :return:
     """
     points = []
     for i in range(1, len(path)):
         points.append(np.array(graph.get_edge_data(path[i - 1], path[i])["points"]))
     plot_points(points, "", crop_to_route=crop_to_route)
+    if save_file is not None and save_file != "":
+        plt.savefig(save_file, bbox_inches="tight", pad_inches=0, dpi=450)
     if show:
         plt.show()
 
