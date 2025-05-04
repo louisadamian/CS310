@@ -166,7 +166,9 @@ def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> 
     return graph
 
 
-def get_graph(filepath="umb_graph.pkl", force_download=False, remove_component_size=10) -> nx.Graph:
+def get_graph(
+    filepath="umb_graph.pkl", force_download=False, remove_component_size=10
+) -> nx.Graph:
     """
     gets data from OpenStreetMaps and converts it into a networkx graph
     :param filepath: the path to the pickle file containing the networkx graph
@@ -179,6 +181,11 @@ def get_graph(filepath="umb_graph.pkl", force_download=False, remove_component_s
             return pickle.load(f)
     data = get_ways(force_download=force_download)
     graph = convert_ways_to_graph(data, remove_component_size=remove_component_size)
+
+    for node_id in graph.nodes:
+        node = data.get_node(node_id)
+        graph.nodes[node_id]['coord']=(float(node.lat), float(node.lon))
+
     with open(filepath, "wb") as f:
         pickle.dump(graph, f)
     return graph
