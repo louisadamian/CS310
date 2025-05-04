@@ -36,4 +36,4 @@ if __name__ == "__main__":
 
     print(f"Estimated walk time: {estimate_walk_time:.1f} minutes")
     print(f"Walking distance: {miles:.2f} miles \n")
-    plotter.plot_route(path, graph, crop_to_route=True, show=True)
+    plotter.plot_route(path, graph,text=f"Estimated walk time: {estimate_walk_time:.1f} minutes\nWalking distance: {miles:.2f} miles \n", crop_to_route=True, show=True, save_file="route.jpg")

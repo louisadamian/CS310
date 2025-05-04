@@ -66,13 +66,15 @@ def plot_points(ways: [np.ndarray], directions: str, crop_to_route=True) -> None
     ax.margins(x=5)
     plt.margins(x=1)
     fig.tight_layout()
+    ax.axis('off')
 
 
-def plot_route(path: [], graph, crop_to_route=True, show=True, save_file=None) -> None:
+def plot_route(path: [], graph, text = "", crop_to_route=True, show=True, save_file=None) -> None:
     """
     plots a route given by a list of nodes in the graph onto OpenStreetMap
     :param path: the list of nodes in the graph onto which to plot
     :param graph: the networkx graph
+    :param text: text displayed next to the map
     :param crop_to_route: crops the map to only show the route if false it shows the entire UMass Boston campus
     :param show: the plot window
     :param save_file: save the figure to a file with the name given by save_file
@@ -81,7 +83,7 @@ def plot_route(path: [], graph, crop_to_route=True, show=True, save_file=None) -
     points = []
     for i in range(1, len(path)):
         points.append(np.array(graph.get_edge_data(path[i - 1], path[i])["points"]))
-    plot_points(points, "", crop_to_route=crop_to_route)
+    plot_points(points, text, crop_to_route=crop_to_route)
     if save_file is not None and save_file != "":
         plt.savefig(save_file, bbox_inches="tight", pad_inches=0, dpi=450)
     if show:
