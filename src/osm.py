@@ -65,25 +65,32 @@ def __weight(way: overpy.Way, node1: int = None, node2: int = None) -> (float, n
         n1 = 0
         n2 = len(way.nodes)
     weight = 0
-    points = []
     if (n2 - n1) < 2:
-        points.append([way.nodes[n1].lat, way.nodes[n1].lon])
+        points = np.array(
+            [
+                [way.nodes[n1].lat, way.nodes[n1].lon],
+                [way.nodes[n2].lat, way.nodes[n2].lon],
+            ],
+            dtype=np.single,
+        )
         weight += __gcdist(
             np.double(way.nodes[n1].lat),
             np.double(way.nodes[n1].lon),
             np.double(way.nodes[n2].lat),
             np.double(way.nodes[n2].lon),
         )
-    for i in range(n1, n2 - 1):
-        points.append([way.nodes[i].lat, way.nodes[i].lon])
-        weight += __gcdist(
-            np.double(way.nodes[i].lat),
-            np.double(way.nodes[i].lon),
-            np.double(way.nodes[i + 1].lat),
-            np.double(way.nodes[i + 1].lon),
-        )
-    points.append([way.nodes[n2].lat, way.nodes[n2].lon])
-    points = np.array(points, dtype=np.single)
+    else:
+        points = np.empty(((n2 - n1), 2), dtype=np.single)
+        for i in range(n1, n2 - 1):
+            points[i - n1] = [way.nodes[i].lat, way.nodes[i].lon]
+            weight += __gcdist(
+                np.double(way.nodes[i].lat),
+                np.double(way.nodes[i].lon),
+                np.double(way.nodes[i + 1].lat),
+                np.double(way.nodes[i + 1].lon),
+            )
+        points[-1] = [way.nodes[n2].lat, way.nodes[n2].lon]
+    # points = np.array(points, dtype=np.single)
     if weight == 0:
         warnings.warn(f"edge ({node1}, {node2}) has 0 weight")
     return weight, points
@@ -166,9 +173,7 @@ def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> 
     return graph
 
 
-def get_graph(
-    filepath="umb_graph.pkl", force_download=False, remove_component_size=10
-) -> nx.Graph:
+def get_graph(filepath="umb_graph.pkl", force_download=False, remove_component_size=10) -> nx.Graph:
     """
     gets data from OpenStreetMaps and converts it into a networkx graph
     :param filepath: the path to the pickle file containing the networkx graph

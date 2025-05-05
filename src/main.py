@@ -5,9 +5,9 @@ from location_search import get_location_nodes
 from algorithms.astar import astar
 from algorithms.dijkstras import dijkstra
 
+
 if __name__ == "__main__":
-    print(len(sys.argv))
-    if len(sys.argv) > 2:
+    if len(sys.argv) > 3:
         start = sys.argv[1]
         end = sys.argv[2]
         algorithm = sys.argv[3]
@@ -40,7 +40,6 @@ if __name__ == "__main__":
 
     print(f"Estimated walk time: {estimate_walk_time:.1f} minutes")
     print(f"Walking distance: {miles:.2f} miles \n")
-
     plotter.plot_route(
         path,
         graph,
