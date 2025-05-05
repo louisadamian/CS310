@@ -27,7 +27,6 @@ def dijkstra(graph: nx.Graph, start_id: int, goal_id: int) -> list[int]:
     :param goal_id:
     :return:
     """
-
     if start_id not in graph.nodes or goal_id not in graph.nodes:
         raise ValueError("start or goal id not found in graph ")
 
@@ -40,12 +39,15 @@ def dijkstra(graph: nx.Graph, start_id: int, goal_id: int) -> list[int]:
     gScore: Dict[int, float] = {node: float('inf') for node in graph.nodes}
     gScore[start_id] = 0.0
 
+    nodes_explored =0
     while openSet:
         _, current = heapq.heappop(openSet)
+        nodes_explored +=1
         if current == goal_id:
             end_time = time.time()
+            print(f"Expanded nodes: {nodes_explored}")
             print(f"{end_time - start_time:.4f} seconds")
-            return reconstruct_path(cameFrom, current, start_id)
+            return reconstruct_path(cameFrom, current, start_id), nodes_explored
 
         for neighbor in graph.neighbors(current):
             edgeWeight = graph[current][neighbor]['weight']
