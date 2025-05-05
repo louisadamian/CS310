@@ -24,7 +24,7 @@ def get_entrances(id):
     return res
 
 
-def get_location_nodes(query: str, graph: nx.Graph):
+def get_location_nodes(query: str, graph: nx.Graph, radius: int = 10):
     ids = location_search(query)
     for id in ids:
         osm = get_entrances(id)
@@ -37,7 +37,7 @@ def get_location_nodes(query: str, graph: nx.Graph):
     if len(ids) > 0:
         api = overpy.Overpass()
         res = api.query(
-            f'({ids[0][0]}({ids[0][1]});)->.poi;way(around.poi: 10)["highway"~"pedestrian|footway|steps|sidewalk|cycleway|path|corridor"];>->.nodes_around;node.nodes_around(around.poi: 5);out;'
+            f'({ids[0][0]}({ids[0][1]});)->.poi;way(around.poi: {radius})["highway"~"pedestrian|footway|steps|sidewalk|cycleway|path|corridor"];>->.nodes_around;node.nodes_around(around.poi:  {radius});out;'
         )
         nodes = []
         for node in res.nodes:
@@ -45,6 +45,9 @@ def get_location_nodes(query: str, graph: nx.Graph):
         nodes.reverse()
         _, _, node_indices = np.intersect1d(graph.nodes, nodes, return_indices=True)
         nodes = np.take(np.array(nodes), np.sort(node_indices))
+        if len(nodes) == 0:
+            if radius < 50:
+                return get_location_nodes(query, graph, int(radius * 1.5))
         return nodes
     warnings.warn(f"no entrances found for {query}")
 
