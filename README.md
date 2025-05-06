@@ -7,10 +7,6 @@
 </p>
 
 
-
-
-
-
 :globe_with_meridians: Finds optimal pedestrian routes on a geographic graph using pathfinding algorithms
 
 ## :link: Table of Contents
@@ -21,7 +17,9 @@
 - [Installation](#computer-installation)
 - [Usage](#atom-usage)
 - [Example](#dart-example)
+
 - [Sample points](#compass-sample points)
+
 - [Results](#bar_chart-results)
 
 </details>
