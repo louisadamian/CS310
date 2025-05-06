@@ -18,7 +18,7 @@
 - [Usage](#atom-usage)
 - [Example](#dart-example)
 
-- [Sample points](#compass-sample points)
+- [Sample points](#compass-sample-points)
 
 - [Results](#bar_chart-results)
 
