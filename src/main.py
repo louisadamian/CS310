@@ -12,15 +12,18 @@ if __name__ == "__main__":
         end = sys.argv[2]
         algorithm = sys.argv[3]
     else:
-        start = input("please enter your starting location ")
-        end = input("please enter your ending location ")
-        algorithm = input("please choose an algorithm ('dijkstra', 'astar') ")
+        start = input("please enter your starting location: ")
+        end = input("please enter your ending location: ")
+        algorithm = input("please choose an algorithm ('dijkstra', 'astar'): ")
+
     graph = osm.get_graph()
     start_nodes = get_location_nodes(start, graph)
     end_nodes = get_location_nodes(end, graph)
+
     if len(start_nodes) == 0 or len(end_nodes) == 0:
         print("No roads near your location were found")
         sys.exit(1)
+
     match algorithm:
         case "dijkstra":
             print("\nComputing shortest path using Dijkstra's algorithm...\n")
@@ -49,3 +52,4 @@ if __name__ == "__main__":
         crop_to_route=True,
         show=True,
     )
+
