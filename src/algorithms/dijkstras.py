@@ -16,27 +16,27 @@ def reconstruct_path(cameFrom: dict[int, int], current: int, start: int) -> List
     return path[::-1]
 
 
-def dijkstra(graph: nx.Graph, start_id: int, goal_id: int) -> list[int]:
+def dijkstra(graph: nx.Graph, start_id: int, goal_id: int) -> (list[int], int):
     """
     Finds the single shortest path between two nodes using Dijkstra's algorithm
 
     Source: Pseudocode from https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm and A*
 
-    :param graph:
-    :param start_id:
-    :param goal_id:
-    :return:
+    :param graph: the networkx graph with osm node ids and weighted edges
+    :param start_id: the osm id of the starting node
+    :param goal_id: the osm id of the goal node
+    :return: a list of the node ids representing the path from start to goal and the number of nodes explored by Dijkstra's
     """
     if start_id not in graph.nodes or goal_id not in graph.nodes:
         raise ValueError("start or goal id not found in graph ")
 
     start_time = time.time()
 
-    openSet: List[tuple[float, int]] = [(0.0, start_id)]
-    cameFrom: Dict[int, int]={}
+    openSet: list[tuple[float, int]] = [(0.0, start_id)]
+    cameFrom: dict[int, int] = {}
 
     # Cost from start node to each node
-    gScore: Dict[int, float] = {node: float('inf') for node in graph.nodes}
+    gScore: dict[int, float] = {node: float("inf") for node in graph.nodes}
     gScore[start_id] = 0.0
 
     nodes_explored =0
