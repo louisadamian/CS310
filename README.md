@@ -21,6 +21,7 @@
 - [Installation](#computer-installation)
 - [Usage](#atom-usage)
 - [Example](#dart-example)
+- [Sample points](#compass-sample points)
 - [Results](#bar_chart-results)
 
 </details>
@@ -83,9 +84,29 @@ Walking distance: 0.18 miles
 >
 
 
+## :compass: Sample Points
+<details>
+<summary> Click to expand</summary>
+
+- university hall
+- campus center
+- wheatley hall
+- mccormack hall
+- integreated sciences complex
+- healey
+- east residence hall
+- west residence hall
+- harbor point
+- commonwealth museum
+- john f kennedy presidential library
+- jfk/umass
+- bayside parking lot
+- west garage
+
+</summary>
+</details>
+
 
 ## :bar_chart: Results
 
-Both A* and Dijkstra's algorithms successfully compute the shortest path. However, A* significantly outperforms Dijkstra in terms of efficiency by expanding fewer nodes.
-
-Although they produce the same optimal path, in one case A* expanded approximately ~85% fewer nodes than Dijkstra. This demonstrates how informed search using a heuristic function (such as great-circle distance) can substantially reduce computational effort.
+Both A* and Dijkstra's algorithms compute the shortest paths. However, A* significantly reduces work by expanding far fewer nodes.
