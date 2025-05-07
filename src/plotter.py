@@ -1,4 +1,3 @@
-import pickle
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.io.img_tiles as cimgt
@@ -66,10 +65,12 @@ def plot_points(ways: [np.ndarray], directions: str, crop_to_route=True) -> None
     ax.margins(x=5)
     plt.margins(x=1)
     fig.tight_layout()
-    ax.axis('off')
+    ax.axis("off")
 
 
-def plot_route(path: [], graph, text = "", crop_to_route=True, show=True, save_file=None) -> None:
+def plot_route(
+    path: [np.ndarray], graph, text="", crop_to_route=True, show=True, save_file=None
+) -> None:
     """
     plots a route given by a list of nodes in the graph onto OpenStreetMap
     :param path: the list of nodes in the graph onto which to plot
@@ -88,11 +89,3 @@ def plot_route(path: [], graph, text = "", crop_to_route=True, show=True, save_f
         plt.savefig(save_file, bbox_inches="tight", pad_inches=0, dpi=450)
     if show:
         plt.show()
-
-
-if __name__ == "__main__":
-    with open("umb_graph.pkl", "rb") as f:
-        graph = pickle.load(f)
-    plot_route([7672450750, 12660053764, 12660053770, 12660053773], graph, show=False)
-    plt.savefig("demo.png", dpi=300)
-    plt.show()

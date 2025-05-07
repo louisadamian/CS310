@@ -5,7 +5,7 @@ import overpy
 import networkx as nx
 
 
-def location_search(query: str):
+def __location_search(query: str):
     query = query.replace(" ", "+")
     headers = {"User-Agent": "CS310-Navigation"}  # user agent is required for OpenStreetMap APIs
     res = requests.get(
@@ -18,16 +18,16 @@ def location_search(query: str):
     return ids
 
 
-def get_entrances(id):
+def __get_entrances(id) -> overpy.Result:
     api = overpy.Overpass()
     res = api.query(f'{id[0]}({id[1]});node(area)[entrance~"main|yes"];out;')
     return res
 
 
 def get_location_nodes(query: str, graph: nx.Graph, radius: int = 10):
-    ids = location_search(query)
+    ids = __location_search(query)
     for id in ids:
-        osm = get_entrances(id)
+        osm = __get_entrances(id)
         nodes = []
         for node in osm.nodes:
             if node.id in graph.nodes:
@@ -50,9 +50,10 @@ def get_location_nodes(query: str, graph: nx.Graph, radius: int = 10):
                 return get_location_nodes(query, graph, int(radius * 1.5))
         return nodes
     warnings.warn(f"no entrances found for {query}")
+    return None
 
 
 if __name__ == "__main__":
-    osm_id, res = location_search("university hall")
+    osm_id, res = __location_search("university hall")
     print(osm_id)
     print(res)

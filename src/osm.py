@@ -7,27 +7,27 @@ import networkx as nx
 import pickle
 
 UMB_REGION = [
-    (42.31984190454275, -71.05251184318851),
-    (42.3202193, -71.0510167),
-    (42.3175209, -71.0415681),
-    (42.3134307, -71.0430135),
-    (42.3099378, -71.0373486),
-    (42.3133297, -71.0324853),
-    (42.3189148, -71.0332685),
-    (42.3235297, -71.0451844),
-    (42.32119679444875, -71.05265041751876),
-    (42.31984190454275, -71.05251184318851),
+    [42.31984190454275, -71.05251184318851],
+    [42.3202193, -71.0510167],
+    [42.3175209, -71.0415681],
+    [42.3134307, -71.0430135],
+    [42.3099378, -71.0373486],
+    [42.3133297, -71.0324853],
+    [42.3189148, -71.0332685],
+    [42.3235297, -71.0451844],
+    [42.32119679444875, -71.05265041751876],
+    [42.31984190454275, -71.05251184318851],
 ]
 
 
 def __gcdist(lat0: np.double, lon0: np.double, lat1: np.double, lon1: np.double) -> np.single:
     """
     Calculate the great circle distance in km between two points in meters using a haversine formula.
-    :param lat0:
-    :param lon0:
-    :param lat1:
-    :param lon1:
-    :return:
+    :param lat0: decimal latitude of 1st point
+    :param lon0: decimal longitude of 1st point
+    :param lat1:decimal latitude of 2nd point
+    :param lon1: decimal longitude of 2nd point
+    :return: great circle distance in meters
     """
     # radius of earth from WGS84 https://en.wikipedia.org/wiki/World_Geodetic_System
     # equation from https://en.wikipedia.org/wiki/Haversine_formula#Formulation
@@ -96,7 +96,7 @@ def __weight(way: overpy.Way, node1: int = None, node2: int = None) -> (float, n
     return weight, points
 
 
-def __coords_list_to_str(coords_list: [(float, float)]) -> str:
+def __coords_list_to_str(coords_list: [[float]]) -> str:
     """
     convert a list of (lat, lon) coordinates to a string representation separated by whitespace for the overpass API query
     :param coords_list: list of (lat, lon) coordinate tuples
@@ -110,7 +110,7 @@ def __coords_list_to_str(coords_list: [(float, float)]) -> str:
     return coord_str
 
 
-def get_ways(filepath="umb_way_data.pkl", force_download=False) -> overpy.Result:
+def __get_ways(filepath: str = "umb_way_data.pkl", force_download: bool = False) -> overpy.Result:
     """
     gets OpenStreetMap ways from Overpass API or local cache
     :param filepath: path to pickle file with openstreetmap data
@@ -134,7 +134,7 @@ def get_ways(filepath="umb_way_data.pkl", force_download=False) -> overpy.Result
     return ways
 
 
-def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> nx.Graph:
+def __convert_ways_to_graph(osm_data: overpy.Result, remove_component_size: int = 10) -> nx.Graph:
     """
     creates a networkx graph of ways from OpenStreetMap where the weight is the GC distance between the points along the points of the way
     :param osm_data: OpenStreetMap data from overpy
@@ -144,6 +144,7 @@ def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> 
     nodes_count = np.zeros((len(osm_data.nodes), 5), dtype=np.int64)
     nodes_count[:, 0] = np.array(osm_data.node_ids)
     for way in osm_data.ways:
+
         for node in way.nodes:
             if "entrance" in node.tags.keys():
                 if (
@@ -153,7 +154,7 @@ def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> 
                 ):
                     nodes_count[np.where(nodes_count == node.id)[0][0], 1] += 2
             nodes_count[np.where(nodes_count == node.id)[0][0], 1] += 1
-    graph_nodes = nodes_count[nodes_count[:, 1] > 1][:, 0]
+    graph_nodes = nodes_count[nodes_count[:, 1] > 0][:, 0]
     graph = nx.Graph()
     graph.add_nodes_from(graph_nodes)
     for way in osm_data.ways:
@@ -165,6 +166,33 @@ def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> 
         for i in range(len(nodes) - 1):
             weight, points = __weight(way, nodes[i], nodes[i + 1])
             graph.add_edge(nodes[i], nodes[i + 1], weight=weight, points=points)
+    rm_nodes=[]
+    for node in graph.nodes:
+        edges = list(graph.edges(node))
+        if len(edges) == 2 and not "entrance" in list(filter(lambda n: n.id==node, osm_data.nodes))[0].tags.keys():
+            edges = np.array(edges)
+            points0 = graph.get_edge_data(edges[0][0], edges[0][1])["points"]
+            points1 = graph.get_edge_data(edges[1][0], edges[1][1])["points"]
+            weight = (
+                graph.get_edge_data(edges[1][0], edges[1][1])["weight"]
+                + graph.get_edge_data(edges[0][0], edges[0][1])["weight"]
+            )
+            new_ends = edges[np.where(edges != node)]
+            if np.all(points0[-1] == points1[0]):
+                points = np.concat([points0, points1[1:]])
+            elif np.all(points0[-1] == points1[-1]):
+                points = np.concat([points0, np.flip(points1, axis=0)[1:]])
+            elif np.all(points0[0] == points1[0]):
+                points = np.concat([np.flip(points0, axis=0), points1[1:]])
+            elif np.all(points0[0] == points1[-1]):
+                points = np.concat([points1, points0[1:]])
+            else:
+                continue
+            graph.remove_edge(edges[0, 0], edges[0, 1])
+            graph.remove_edge(edges[1, 0], edges[1, 1])
+            rm_nodes.append(node)
+            graph.add_edge(new_ends[0], new_ends[1], weight=weight, points=points)
+    graph.remove_nodes_from(rm_nodes)
     if remove_component_size > 0:
         components_set = list(nx.connected_components(graph))
         for components in components_set:
@@ -173,7 +201,9 @@ def convert_ways_to_graph(osm_data: overpy.Result, remove_component_size=10) -> 
     return graph
 
 
-def get_graph(filepath="umb_graph.pkl", force_download=False, remove_component_size=10) -> nx.Graph:
+def get_graph(
+    filepath: str = "umb_graph.pkl", force_download: bool = False, remove_component_size: int = 10
+) -> nx.Graph:
     """
     gets data from OpenStreetMaps and converts it into a networkx graph
     :param filepath: the path to the pickle file containing the networkx graph
@@ -184,22 +214,13 @@ def get_graph(filepath="umb_graph.pkl", force_download=False, remove_component_s
     if not force_download and os.path.isfile(filepath):
         with open(filepath, "rb") as f:
             return pickle.load(f)
-    data = get_ways(force_download=force_download)
-    graph = convert_ways_to_graph(data, remove_component_size=remove_component_size)
+    data = __get_ways(force_download=force_download)
+    graph = __convert_ways_to_graph(data, remove_component_size=remove_component_size)
 
     for node_id in graph.nodes:
         node = data.get_node(node_id)
-        graph.nodes[node_id]['coord']=(float(node.lat), float(node.lon))
+        graph.nodes[node_id]["coord"] = (float(node.lat), float(node.lon))
 
     with open(filepath, "wb") as f:
         pickle.dump(graph, f)
     return graph
-
-
-if __name__ == "__main__":
-    from matplotlib import pyplot as plt
-
-    graph = get_graph()
-    print(f"created graph with {len(graph.nodes)} nodes and {len(graph.edges)} edges")
-    nx.draw(graph, with_labels=True)
-    plt.show()

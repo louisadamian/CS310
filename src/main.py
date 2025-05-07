@@ -39,7 +39,7 @@ if __name__ == "__main__":
         walking_distance += graph[path[i]][path[i + 1]]["weight"]
     estimate_walk_speed = 5000 / 60
     estimate_walk_time = walking_distance / estimate_walk_speed
-    miles = walking_distance * 0.000621371
+    miles = walking_distance * 0.0006213711922
 
     print(f"Estimated walk time: {estimate_walk_time:.1f} minutes")
     print(f"Walking distance: {miles:.2f} miles \n")
@@ -52,4 +52,3 @@ if __name__ == "__main__":
         crop_to_route=True,
         show=True,
     )
-
